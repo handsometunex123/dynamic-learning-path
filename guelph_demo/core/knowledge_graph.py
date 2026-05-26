@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 import networkx as nx
 
-from core.course_data import CONCEPTS, PREREQUISITE_EDGES
+from core.course_data import CONCEPTS, PREREQUISITE_EDGES, CONCEPT_DESCRIPTIONS
 
 
 class CurriculumGraph:
