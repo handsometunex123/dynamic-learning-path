@@ -1,14 +1,11 @@
 # Knowledge graph for the Python curriculum.
 # Nodes are concepts, directed edges run prerequisite → dependent.
 
-import os
-import tempfile
 from typing import Dict, List, Optional
 
 import networkx as nx
-from pyvis.network import Network
 
-from core.course_data import CONCEPTS, PREREQUISITE_EDGES, CONCEPT_DESCRIPTIONS
+from core.course_data import CONCEPTS, PREREQUISITE_EDGES
 
 
 class CurriculumGraph:
@@ -78,69 +75,3 @@ class CurriculumGraph:
         lines.append("}")
         return "\n".join(lines)
 
-    def render_html(self, mastery_dict: Optional[Dict] = None, highlight_path: Optional[List] = None, height: str = "520px") -> str:
-        """Render as a Pyvis interactive HTML string."""
-        mastery_dict = mastery_dict or {}
-        highlight_path = set(highlight_path or [])
-
-        net = Network(height=height, width="100%", directed=True, bgcolor="#0e1117", font_color="white")
-        net.set_options("""
-        {
-          "physics": { "enabled": false },
-          "layout": {
-            "hierarchical": {
-              "enabled": true,
-              "direction": "LR",
-              "sortMethod": "directed",
-              "levelSeparation": 155,
-              "nodeSpacing": 105
-            }
-          },
-          "interaction": { "zoomView": true, "dragView": true, "tooltipDelay": 100 },
-          "edges": {
-            "arrows": { "to": { "enabled": true, "scaleFactor": 0.8 } },
-            "color": { "color": "#555", "highlight": "#f39c12" },
-            "smooth": { "type": "cubicBezier" }
-          },
-          "nodes": { "font": { "size": 13 }, "borderWidth": 2 }
-        }
-        """)
-
-        for node in self.graph.nodes:
-            m = mastery_dict.get(node, 0.0)
-            pct = int(m * 100)
-            fill, border = self._node_colors(node, mastery_dict, highlight_path)
-            desc = CONCEPT_DESCRIPTIONS.get(node, "")
-            net.add_node(
-                node,
-                label=f"{node}\n{pct}%",
-                title=f"<b>{node}</b><br>{desc}<br>Mastery: {pct}%",
-                color={"background": fill, "border": border},
-                size=28,
-                shape="box",
-            )
-
-        for src, dst in self.graph.edges:
-            on_path = src in highlight_path and dst in highlight_path
-            net.add_edge(src, dst, color="#f39c12" if on_path else "#555", width=3 if on_path else 1)
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False, encoding="utf-8") as f:
-            tmp_path = f.name
-
-        net.save_graph(tmp_path)
-        with open(tmp_path, encoding="utf-8") as f:
-            html = f.read()
-        os.unlink(tmp_path)
-
-        fit_script = """
-<script>
-(function waitForNetwork() {
-  if (typeof network !== "undefined") {
-    network.fit({ animation: false });
-  } else {
-    setTimeout(waitForNetwork, 50);
-  }
-})();
-</script>
-"""
-        return html.replace("</body>", fit_script + "</body>")
